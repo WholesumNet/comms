@@ -1,3 +1,4 @@
+pub mod p2p;
 pub mod notice;
 pub mod compute;
 
