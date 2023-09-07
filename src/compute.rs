@@ -21,6 +21,22 @@ pub struct JobDetails {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Job {
-    pub id: String, //@ appears that cbor cannot serialize u128!
+    pub id: String,    //@ appears that cbor cannot serialize u128!
     pub details: JobDetails,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum JobStatus {
+    Running,                     // running, aka proving
+    FinishedWithError(String),   // finished with error
+    ToBeVerified,                // finished running, waiting to be verified
+    ToBeCollected,               // finished running and verification, waiting to be collected
+    Unknown,                     // have no idea?
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct JobResult {
+    pub id: String,
+    pub status: JobStatus,
+}
+
