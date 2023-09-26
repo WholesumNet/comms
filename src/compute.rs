@@ -20,22 +20,32 @@ pub struct JobDetails {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Job {
-    pub id: String,    //@ appears that cbor cannot serialize u128!
+pub struct JobContract {
+    pub id: String,
     pub details: JobDetails,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JobStatus {
-    Running,                     // running, aka proving
-    FinishedWithError(String),   // finished with error
-    ToBeVerified,                // finished running, waiting to be verified
-    ToBeCollected,               // finished running and verification, waiting to be collected
-    Unknown,                     // have no idea?
+    // running, aka proving
+    Running,
+
+    // finished with error, stderr and stdout resp. as params
+    ExecutionFailed(Option<String>, Option<String>),    
+
+    // finished running, waiting to be verified, receipt cid as param
+    ReadyForVerification(String),       
+
+    // verification failed, error as param
+    VerificationFailed(String),         
+
+    // verified, waiting to be collected
+    ReadyToHarvest,                     
 }
 
+// servers update clients about latest developments of jobs 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct JobResult {
+pub struct JobUpdate {
     pub id: String,
     pub status: JobStatus,
 }

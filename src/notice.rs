@@ -2,27 +2,28 @@ use num_enum::{TryFromPrimitive, IntoPrimitive};
 use serde::{Deserialize, Serialize};
 
 use crate::compute;
+use crate::verify;
 
 #[derive(Debug, TryFromPrimitive, IntoPrimitive, Eq, PartialEq)]
 #[repr(u8)]
 pub enum Notice {
-    Compute   = 1, // I need compute resources
-    Verify    = 2, // I need to verify a computation
-    JobStatus = 3,    // I need to get my job's status
+    Compute = 0,    // I need compute resources
+    Verify,         // I need to verify some computation
+    JobStatus,      // I need to get my job's status
 }
 
 // servers make requests
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Request {
-    Compute(compute::Offer),
-    Verify,
-    JobResult(compute::JobResult),
+    ComputeOffer(compute::Offer),        // I have compute resources
+    VerifyOffer,                         // I would verify
+    UpdateForJob(compute::JobUpdate),    // job's status has been updated
 }
 
 // clients respond to server requests
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Response {
-    DeclineOffer,
-    Compute(compute::Job),
-    Verify,
+    DeclinedOffer,
+    ComputeJob(compute::JobContract),
+    VerifyJob(verify::VerifyDetails),
 }
