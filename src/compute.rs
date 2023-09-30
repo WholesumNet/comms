@@ -14,30 +14,36 @@ pub struct Offer {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct JobDetails {
+pub struct ComputeDetails {
+    pub job_id: String,
     pub docker_image: String,
     pub command: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct JobContract {
-    pub id: String,
-    pub details: JobDetails,
+pub struct VerificationDetails {
+    pub job_id: String,
+    pub image_id: String,       // image_id(merkle root of) as in Risc0    
+    pub receipt_cid: String,    // receipt to verify against as in Risc0
 }
+
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JobStatus {
     // running, aka proving
     Running,
 
-    // finished with error, stderr and stdout resp. as params
+    // finished with error, stdout(unix fd 1) and stderr(unix fd 2) resp. as params
     ExecutionFailed(Option<String>, Option<String>),    
 
     // finished running, waiting to be verified, receipt cid as param
-    ReadyForVerification(String),       
+    ReadyForVerification(Option<String>),       
 
     // verification failed, error as param
-    VerificationFailed(String),         
+    VerificationFailed(Option<String>),
+
+    // verification succeeded
+    VerificationSucceeded,      
 
     // verified, waiting to be collected
     ReadyToHarvest,                     
