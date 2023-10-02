@@ -7,16 +7,16 @@ use crate::compute;
 #[repr(u8)]
 pub enum Notice {
     Compute = 0,    // I need compute resources
-    Verify,         // I need to verify some computation
+    Verification,         // I need to verify some computation
     JobStatus,      // I need to get updates on my job's status
 }
 
 // servers make requests
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Request {
-    ComputeOffer(compute::Offer),        // I have compute resources
-    VerifyOffer,                         // I would verify
-    UpdateForJob(compute::JobUpdate),    // job's status has been updated
+    ComputeOffer(compute::Offer),              // I have compute resources
+    VerificationOffer,                         // I would verify
+    UpdateForJobs(Vec<compute::JobUpdate>),    // job's status has been updated
 }
 
 // clients respond to server requests
