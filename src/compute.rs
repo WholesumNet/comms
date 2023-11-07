@@ -28,26 +28,32 @@ pub struct VerificationDetails {
     pub pod_name: String,       // pod where the receipt is located in FairOS-dfs
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HarvestDetails {
+    pub fd12_cid: Option<String>,
+    pub receipt_cid: Option<String>,
+    //@ more fields TBD
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JobStatus {
     // running, aka proving
     Running,
 
-    // finished with error, stdout(unix fd 1) and stderr(unix fd 2) resp. as params
-    ExecutionFailed(Option<String>, Option<String>),    
+    // finished with error, cid of fd12(stdout - "unix fd 1" and stderr - "unix fd 2") as param
+    ExecutionFailed(Option<String>),    
 
-    // finished running, waiting to be verified, receipt cid as param
-    ReadyForVerification(Option<String>),       
+    // waiting to be verified, receipt cid as param
+    ExecutionSucceeded(Option<String>),       
 
-    // verification failed, error as param
-    VerificationFailed(Option<String>),
+    // receipt_cid as param
+    VerificationFailed(String),
 
-    // verification succeeded
-    VerificationSucceeded,      
+    // receipt_cid as param
+    VerificationSucceeded(String),
 
-    // verified, waiting to be collected
-    ReadyToHarvest,                     
+    // harvested, cid of fd12, logs, ... as params
+    Harvested(HarvestDetails),  
 }
 
 // servers update clients about latest developments of jobs 

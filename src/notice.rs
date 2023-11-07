@@ -6,9 +6,10 @@ use crate::compute;
 #[derive(Debug, TryFromPrimitive, IntoPrimitive, Eq, PartialEq)]
 #[repr(u8)]
 pub enum Notice {
-    Compute = 0,    // I need compute resources
-    Verification,         // I need to verify some computation
-    JobStatus,      // I need to get updates on my job's status
+    Compute = 0,    // need compute resources
+    Verification,   // need to verify some computation
+    Harvest,        // need to harvest residue objects: stdout, stderr, logs, output data, ...
+    JobStatus,      // need to get updates on my job's status
 }
 
 // servers make requests
