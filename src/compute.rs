@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerSpecs {
-    pub gflops: u16,       //@ fp64 * 10,000?
-    pub ram_amount: u64,   // mega bytes   
+    pub gflops: u16,            //@ fp64 * 10,000?
+    pub memory_capacity: u32,   // in GB
     pub cpu_model: String,
 }
 
