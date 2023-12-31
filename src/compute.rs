@@ -23,9 +23,9 @@ pub struct ComputeDetails {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VerificationDetails {
     pub job_id: String,
-    pub image_id: String,       // image_id(merkle root of) as in Risc0    
-    pub receipt_cid: String,    // receipt to verify against as in Risc0
-    pub pod_name: String,       // pod where the receipt is located in FairOS-dfs
+    pub risc0_image_id: String,       // image_id(merkle root of) as in Risc0    
+    pub receipt_cid: String,          // receipt to verify against as in Risc0
+    pub pod_name: String,             // pod where the receipt is located in FairOS-dfs
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
