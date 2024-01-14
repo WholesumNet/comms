@@ -12,15 +12,14 @@ use std::time::Duration;
 
 use crate::notice;
 
-
 #[derive(NetworkBehaviour)]
-pub struct MyBehaviour {
+pub struct LocalBehaviour {
     pub req_resp: request_response::cbor::Behaviour<notice::Request, notice::Response>,
     pub gossipsub: gossipsub::Behaviour,
     pub mdns: mdns::async_io::Behaviour,
 }
 
-pub fn setup_local_swarm() -> Swarm<MyBehaviour> {
+pub fn setup_local_swarm() -> Swarm<LocalBehaviour> {
     // get a random peer_id
     let id_keys = identity::Keypair::generate_ed25519();
     let local_peer_id = PeerId::from(id_keys.public());
@@ -80,7 +79,7 @@ pub fn setup_local_swarm() -> Swarm<MyBehaviour> {
             )],
             request_response::Config::default(),
         );
-        let behaviour = MyBehaviour {
+        let behaviour = LocalBehaviour {
             req_resp: req_resp,
             gossipsub: gossipsub,
             mdns: mdns,
@@ -88,4 +87,6 @@ pub fn setup_local_swarm() -> Swarm<MyBehaviour> {
         SwarmBuilder::with_async_std_executor(transport, behaviour, local_peer_id).build()
     };
     swarm
-}
+} 
+
+
