@@ -1,16 +1,71 @@
-use futures::{future::Either};
-use libp2p::{
-    core::{muxing::StreamMuxerBox, transport::OrTransport, upgrade},
-    gossipsub, identity, mdns, noise, request_response,
-    swarm::{Swarm, NetworkBehaviour, StreamProtocol, SwarmBuilder},
-    tcp, yamux, PeerId, Transport,
+use std::{
+    error::Error,
+    time::Duration,
+    hash::{
+        Hash, Hasher
+    },
+    collections::hash_map::DefaultHasher
 };
-use libp2p_quic as quic;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-use std::time::Duration;
+
+use libp2p::{
+    gossipsub, identity, identify, kad, mdns, noise, request_response,
+    swarm::{Swarm, NetworkBehaviour, StreamProtocol},
+    SwarmBuilder,
+    tcp, yamux, PeerId,
+};
 
 use crate::notice;
+
+// prepare gossipsub behaviour
+pub fn prepare_gossipsub_behaviour(
+    keypair: &identity::Keypair,
+    topic: &str
+)-> Result<gossipsub::Behaviour, Box<dyn Error + Send + Sync>> {
+    // content-address messages
+    let message_id_fn = |message: &gossipsub::Message| {
+        let mut s = DefaultHasher::new();
+        message.data.hash(&mut s);
+        gossipsub::MessageId::from(s.finish().to_string())
+    };
+    // set a custom Gossipsub configuration
+    let gossipsub_config = gossipsub::ConfigBuilder::default()
+        .heartbeat_interval(Duration::from_secs(10)) // aid debugging by not cluttering log space
+        .validation_mode(gossipsub::ValidationMode::Strict) // enforce message signing
+        .message_id_fn(message_id_fn) 
+        .build()?;
+    let mut gossipsub_behaviour = gossipsub::Behaviour::new(
+        gossipsub::MessageAuthenticity::Signed(keypair.clone()),
+        gossipsub_config
+    )?;
+    let topic = gossipsub::IdentTopic::new(topic);
+    let _ = gossipsub_behaviour.subscribe(&topic);
+    Ok(gossipsub_behaviour)
+}
+
+// prepare request-response behaviour
+pub fn prepare_request_response_behaviour()
+-> request_response::cbor::Behaviour<notice::Request, notice::Response> 
+{
+    request_response::cbor::Behaviour::<notice::Request, notice::Response>::new(
+        [(
+            StreamProtocol::new("/wholesum/req_resp/1.0"),
+            request_response::ProtocolSupport::Full,
+        )],
+        request_response::Config::default(),
+    )
+}
+
+// prepare identify behaviour
+pub fn prepare_identify_behaviour(
+    public_key: &identity::PublicKey
+)-> identify::Behaviour {
+    identify::Behaviour::new(
+        identify::Config::new(
+            String::from("/wholesum/identify/1.0"),
+            public_key.clone()
+        )
+    )
+}
 
 #[derive(NetworkBehaviour)]
 pub struct LocalBehaviour {
@@ -19,74 +74,121 @@ pub struct LocalBehaviour {
     pub mdns: mdns::async_io::Behaviour,
 }
 
-pub fn setup_local_swarm() -> Swarm<LocalBehaviour> {
-    // get a random peer_id
-    let id_keys = identity::Keypair::generate_ed25519();
-    let local_peer_id = PeerId::from(id_keys.public());
-    println!("PeerId: {local_peer_id}");
-    // setup an encrypted dns-enabled transport over yamux
-    let tcp_transport = tcp::async_io::Transport::new(tcp::Config::default().nodelay(true))
-        .upgrade(upgrade::Version::V1Lazy)
-        .authenticate(noise::Config::new(&id_keys).expect("signing libp2p static keypair"))
-        .multiplex(yamux::Config::default())
-        .timeout(std::time::Duration::from_secs(30))
-        .boxed();
-    let quic_transport = quic::async_std::Transport::new(quic::Config::new(&id_keys));
-    let transport = OrTransport::new(quic_transport, tcp_transport)
-        .map(|either_output, _| match either_output {
-            Either::Left((peer_id, muxer)) => (peer_id, StreamMuxerBox::new(muxer)),
-            Either::Right((peer_id, muxer)) => (peer_id, StreamMuxerBox::new(muxer)),
-        })
-        .boxed();
+pub fn setup_local_swarm(
+    keypair: &identity::Keypair,
+    topic: &str,
+)-> Result<Swarm<LocalBehaviour>, Box<dyn Error>> {
+    let local_keypair = keypair.clone();
+    let swarm = SwarmBuilder::with_existing_identity(local_keypair.clone())
+        .with_async_std()
+        // .with_tcp(
+        //     tcp::Config::default(),
+        //     noise::Config::new,
+        //     yamux::Config::default
+        // )?
+        .with_quic()     
+        .with_behaviour(|key| {
+            // setup identify
+            // let identify = {
+            //     identify::Behaviour::new(
+            //         identify::Config::new(
+            //             String::from("/wholesum/identify/1.0"),
+            //             key.public()
+            //         )
+            //     )
+            // };
 
-    // to content-address message, take the hash of message and use it as an id
-    let message_id_fn = |message: &gossipsub::Message| {
-        let mut s = DefaultHasher::new();
-        message.data.hash(&mut s);
-        gossipsub::MessageId::from(s.finish().to_string())
-    };
-
-    // set a custom Gossipsub configuration
-    let gossipsub_config = gossipsub::ConfigBuilder::default()
-        .heartbeat_interval(Duration::from_secs(10)) // aid debugging by not cluttering log space
-        .validation_mode(gossipsub::ValidationMode::Strict) // enforce message signing
-        .message_id_fn(message_id_fn) // content-address messages
-        .build()
-        .expect("Invalid gossipsub config.");
-
-    // build a Gossipsub network behaviour
-    let mut gossipsub = gossipsub::Behaviour::new(
-        gossipsub::MessageAuthenticity::Signed(id_keys),
-        gossipsub_config,
-    )
-    .expect("Invalid behaviour configuration.");
-
-    // subscribe to our topic
-    const TOPIC_OF_INTEREST: &str = "<-- Compute Bazaar -->";
-    println!("topic of interest: `{TOPIC_OF_INTEREST}`");
-    // @ use topic_hash config for auto hash(topic)
-    let topic = gossipsub::IdentTopic::new(TOPIC_OF_INTEREST);
-    let _ = gossipsub.subscribe(&topic);
-
-    // create a swarm to manage events and peers
-    let swarm = {
-        let mdns = mdns::async_io::Behaviour::new(mdns::Config::default(), local_peer_id)
-            .expect("Failed to setup mdns behaviour.");
-        let req_resp = request_response::cbor::Behaviour::<notice::Request, notice::Response>::new(
-            [(
-                StreamProtocol::new("/p2pcompute"),
-                request_response::ProtocolSupport::Full,
-            )],
-            request_response::Config::default(),
-        );
-        let behaviour = LocalBehaviour {
-            req_resp: req_resp,
-            gossipsub: gossipsub,
-            mdns: mdns,
-        };
-        SwarmBuilder::with_async_std_executor(transport, behaviour, local_peer_id).build()
-    };
-    swarm
-} 
+            // setup mdns
+            let local_peer_id = identity::PeerId::from_public_key(&local_keypair.public());
+            let mdns_behaviour = mdns::async_io::Behaviour::new(mdns::Config::default(), local_peer_id)?;
+            Ok(LocalBehaviour {
+                mdns: mdns_behaviour,
+                gossipsub: prepare_gossipsub_behaviour(&key, topic)?,
+                req_resp: prepare_request_response_behaviour(),
+            })
+        })?
+        .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
+        .build();
+    Ok(swarm)
+}
 
 
+
+#[derive(NetworkBehaviour)]
+pub struct GlobalBehaviour {
+    pub identify: identify::Behaviour,
+    pub kademlia: kad::Behaviour<kad::store::MemoryStore>,
+    pub gossipsub: gossipsub::Behaviour,
+    // pub req_resp: request_response::cbor::Behaviour<notice::Request, notice::Response>,
+}
+
+// setup a global swram instance
+async fn setup_global_swarm(
+    keypair: &identity::Keypair
+)-> Result<Swarm<GlobalBehaviour>, Box<dyn Error>> {
+    let local_keypair = keypair.clone();
+    let swarm = libp2p::SwarmBuilder::with_existing_identity(local_keypair)
+        .with_async_std()
+        .with_tcp(
+            tcp::Config::default(),
+            noise::Config::new,
+            yamux::Config::default
+        )?
+        .with_quic()
+        .with_dns().await?        
+        .with_behaviour(|key| {
+            // setup identify
+            let identify = {
+                identify::Behaviour::new(
+                    identify::Config::new(
+                        String::from("/wholesum/identify/1.0"),
+                        key.public()
+                    )
+                )
+            };
+
+            // setup gossipsub
+            let gossipsub_behaviour = {
+                // content-address messages
+                let message_id_fn = |message: &gossipsub::Message| {
+                    let mut s = DefaultHasher::new();
+                    message.data.hash(&mut s);
+                    gossipsub::MessageId::from(s.finish().to_string())
+                };
+                // set a custom Gossipsub configuration
+                let gossipsub_config = gossipsub::ConfigBuilder::default()
+                    .heartbeat_interval(Duration::from_secs(10)) // aid debugging by not cluttering log space
+                    .validation_mode(gossipsub::ValidationMode::Strict) // enforce message signing
+                    .message_id_fn(message_id_fn) 
+                    .build()?;
+                gossipsub::Behaviour::new(
+                    gossipsub::MessageAuthenticity::Signed(key.clone()),
+                    gossipsub_config
+                )?
+            };
+
+            // setup kademlia
+            let kademlia = {
+                let local_peer_id = PeerId::from(keypair.public());
+                let mut cfg = kad::Config::default();
+                cfg.set_query_timeout(Duration::from_secs(5 * 60));
+                cfg.set_protocol_names(
+                    vec![
+                        StreamProtocol::new("/wholesum/kad/1.0")                        
+                    ]
+                );
+                let store = kad::store::MemoryStore::new(local_peer_id);
+                kad::Behaviour::with_config(local_peer_id, store, cfg)
+            };
+
+            Ok(GlobalBehaviour {
+                identify: identify,
+                kademlia: kademlia,
+                gossipsub: gossipsub_behaviour,
+                // req_resp: req_resp,
+            })
+        })?
+        .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
+        .build();
+    Ok(swarm)
+}
