@@ -19,6 +19,17 @@ use libp2p::{
 
 use crate::notice;
 
+// prepare mdns behaviour
+fn prepare_mdns_behaviour(
+    keypair: &identity::Keypair
+) -> Result<mdns::async_io::Behaviour, Box<dyn Error + Send + Sync>> {
+    let local_peer_id = identity::PeerId::from_public_key(&keypair.public());
+    Ok(mdns::async_io::Behaviour::new(
+        mdns::Config::default(),
+        local_peer_id
+    )?)
+}
+
 // prepare gossipsub behaviour
 fn prepare_gossipsub_behaviour(
     keypair: &identity::Keypair,
@@ -83,66 +94,22 @@ fn prepare_kademlia_behaviour(
     kad::Behaviour::with_config(local_peer_id, store, cfg)
 }
 
+// main network behaviour 
 #[derive(NetworkBehaviour)]
-pub struct LocalBehaviour {
-    pub mdns: mdns::async_io::Behaviour,
-    pub gossipsub: gossipsub::Behaviour,
-    pub req_resp: request_response::cbor::Behaviour<notice::Request, notice::Response>,
-}
-
-pub fn setup_local_swarm(
-    keypair: &identity::Keypair,
-)-> Result<Swarm<LocalBehaviour>, Box<dyn Error>> {
-    let local_keypair = keypair.clone();
-    let swarm = SwarmBuilder::with_existing_identity(local_keypair.clone())
-        .with_async_std()
-        // .with_tcp(
-        //     tcp::Config::default(),
-        //     noise::Config::new,
-        //     yamux::Config::default
-        // )?
-        .with_quic()     
-        .with_behaviour(|key| {
-            // setup identify
-            // let identify = {
-            //     identify::Behaviour::new(
-            //         identify::Config::new(
-            //             String::from("/wholesum/identify/1.0"),
-            //             key.public()
-            //         )
-            //     )
-            // };
-
-            // setup mdns
-            let local_peer_id = identity::PeerId::from_public_key(&local_keypair.public());
-            let mdns_behaviour = mdns::async_io::Behaviour::new(mdns::Config::default(), local_peer_id)?;
-            Ok(LocalBehaviour {
-                mdns: mdns_behaviour,
-                gossipsub: prepare_gossipsub_behaviour(&key)?,
-                req_resp: prepare_request_response_behaviour(),
-            })
-        })?
-        .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
-        .build();
-    Ok(swarm)
-}
-
-
-
-#[derive(NetworkBehaviour)]
-pub struct GlobalBehaviour {
+pub struct MyBehaviour {
     pub identify: identify::Behaviour,
+    pub mdns: mdns::async_io::Behaviour,
     pub kademlia: kad::Behaviour<kad::store::MemoryStore>,
     pub gossipsub: gossipsub::Behaviour,
     pub req_resp: request_response::cbor::Behaviour<notice::Request, notice::Response>,
 }
 
 // setup a global swram instance
-pub async fn setup_global_swarm(
+pub async fn setup_swarm(
     keypair: &identity::Keypair,
-)-> Result<Swarm<GlobalBehaviour>, Box<dyn Error>> {
+)-> Result<Swarm<MyBehaviour>, Box<dyn Error>> {
     let local_keypair = keypair.clone();
-    let swarm = libp2p::SwarmBuilder::with_existing_identity(local_keypair)
+    let swarm = SwarmBuilder::with_existing_identity(local_keypair)
         .with_async_std()
         .with_tcp(
             tcp::Config::default(),
@@ -153,8 +120,9 @@ pub async fn setup_global_swarm(
         .with_dns().await?        
         .with_behaviour(|key| {            
             let public_key = key.public();
-            Ok(GlobalBehaviour {
+            Ok(MyBehaviour {
                 identify: prepare_identify_behaviour(&public_key),
+                mdns: prepare_mdns_behaviour(&key)?,
                 kademlia: prepare_kademlia_behaviour(&public_key),
                 gossipsub: prepare_gossipsub_behaviour(&key)?,
                 req_resp: prepare_request_response_behaviour(),
