@@ -1,5 +1,18 @@
 use serde::{Deserialize, Serialize};
 
+// used by clients when gossiping about compute needs
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MatchingCriteria {
+    // min memory amount, e.g. 16gb
+    pub memory_capacity: Option<u32>,
+
+    // how long should it take to execute the benchmark? e.g. max 40 secs
+    pub benchmark_duration_secs: Option<u32>,
+
+    // benchmark expiration from now, e.g. 3600 secs
+    pub benchmark_expiry_secs: Option<u32>, 
+}
+
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerSpecs {
     pub gflops: u16,            //@ fp64 * 10,000?
@@ -11,6 +24,7 @@ pub struct ServerSpecs {
 pub struct Offer {
     pub hw_specs: ServerSpecs, // hardware specs    
     pub price: u8,             // $/secs of usage rate
+    pub benchmark_cid: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
