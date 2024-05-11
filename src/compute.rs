@@ -1,17 +1,25 @@
 use serde::{Deserialize, Serialize};
 
-// used by clients when gossiping about compute needs
+// criteria for job seekers
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MatchingCriteria {
+pub struct Criteria {
     // min memory amount, e.g. 16gb
     pub memory_capacity: Option<u32>,
 
-    // how long should it take to execute the benchmark? e.g. max 40 secs
-    pub benchmark_duration_secs: Option<u32>,
+    // acceptable duration of the benchmark's execution e.g. max 40 secs
+    pub benchmark_duration_msecs: Option<u128>,
 
     // benchmark expiration from now, e.g. 3600 secs
-    pub benchmark_expiry_secs: Option<u32>, 
+    pub benchmark_expiry_secs: Option<i64>, 
 }
+
+// used by clients when gossiping about compute needs
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NeedCompute {
+    pub job_id: String,
+    pub criteria: Criteria,
+}
+
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerSpecs {
@@ -20,13 +28,16 @@ pub struct ServerSpecs {
     pub cpu_model: String,
 }
 
+// the offer as server makes for a compute need
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Offer {
+    pub job_id: String,
     pub hw_specs: ServerSpecs, // hardware specs    
     pub price: u8,             // $/secs of usage rate
     pub benchmark_cid: String,
 }
 
+// the actual compute job 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ComputeDetails {
     pub job_id: String,
@@ -34,11 +45,13 @@ pub struct ComputeDetails {
     pub command: String,
 }
 
+// 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VerificationDetails {
     pub job_id: String,
     pub risc0_image_id: String,       // image_id(merkle root of) as in Risc0    
     pub receipt_cid: String,          // receipt to verify against as in Risc0
+    //@ no need for pod_name here, could be hard-coded to 'receipt'
     pub pod_name: String,             // pod where the receipt is located in FairOS-dfs
 }
 
