@@ -18,13 +18,15 @@ pub enum Request {
     ComputeOffer(compute::Offer),              // I have compute resources
     VerificationOffer,                         // I would verify
     UpdateForJobs(Vec<compute::JobUpdate>),    // job's status has been updated
-    ComputeJob(compute::ComputeDetails),       // Run this job for me hey degen server
+    // benchmarks is already passed, get this compute job done
+    ComputeJob(compute::ComputeDetails),       
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Response {
     //@ is this even necessary? timeout is equivalent to offer decline
     DeclinedOffer, 
+    // a compute job wrapped in response needs no benchmarks
     ComputeJob(compute::ComputeDetails),
     VerificationJob(compute::VerificationDetails),
 }
