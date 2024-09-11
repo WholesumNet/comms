@@ -70,6 +70,9 @@ pub struct HarvestDetails {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JobStatus {
+    // offer successfully evaluated, deal is struck
+    DealStruck,
+
     // running, aka proving
     Running,
 
