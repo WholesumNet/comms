@@ -28,13 +28,19 @@ pub struct ServerSpecs {
     pub cpu_model: String,
 }
 
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ServerBenchmark {
+    pub cid: String,
+    pub pod_name: String,
+}
+
 // the offer as server makes for a compute need
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Offer {
     pub job_id: String,
     pub hw_specs: ServerSpecs, // hardware specs    
     pub price: u8,             // $/secs of usage rate
-    pub benchmark_cid: String,
+    pub server_benchmark: ServerBenchmark,
 }
 
 // the actual compute job 
@@ -64,6 +70,9 @@ pub struct HarvestDetails {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JobStatus {
+    // offer successfully evaluated, deal is struck
+    DealStruck,
+
     // running, aka proving
     Running,
 
