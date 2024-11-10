@@ -1,5 +1,4 @@
 use std::{
-    error::Error,
     time::Duration,
     hash::{
         Hash, Hasher
@@ -16,13 +15,13 @@ use libp2p::{
     SwarmBuilder,
     tcp, yamux, PeerId,
 };
-
+use anyhow;
 use crate::notice;
 
 // prepare mdns behaviour
 fn prepare_mdns_behaviour(
     keypair: &identity::Keypair
-) -> Result<mdns::async_io::Behaviour, Box<dyn Error + Send + Sync>> {
+) -> anyhow::Result<mdns::async_io::Behaviour> {
     let local_peer_id = identity::PeerId::from_public_key(&keypair.public());
     Ok(mdns::async_io::Behaviour::new(
         mdns::Config::default(),
@@ -33,7 +32,7 @@ fn prepare_mdns_behaviour(
 // prepare gossipsub behaviour
 fn prepare_gossipsub_behaviour(
     keypair: &identity::Keypair,
-)-> Result<gossipsub::Behaviour, Box<dyn Error + Send + Sync>> {
+)-> anyhow::Result<gossipsub::Behaviour> {
     // content-address messages
     let message_id_fn = |message: &gossipsub::Message| {
         let mut s = DefaultHasher::new();
@@ -50,7 +49,8 @@ fn prepare_gossipsub_behaviour(
         gossipsub::Behaviour::new(
             gossipsub::MessageAuthenticity::Signed(keypair.clone()),
             gossipsub_config
-        )?
+        )
+        .map_err(anyhow::Error::msg)?
     )
 }
 
@@ -107,7 +107,7 @@ pub struct MyBehaviour {
 // setup a global swram instance
 pub async fn setup_swarm(
     keypair: &identity::Keypair,
-)-> Result<Swarm<MyBehaviour>, Box<dyn Error>> {
+)-> anyhow::Result<Swarm<MyBehaviour>> {
     let local_keypair = keypair.clone();
     let swarm = SwarmBuilder::with_existing_identity(local_keypair)
         .with_async_std()
@@ -143,7 +143,7 @@ pub struct BootNodeBehaviour {
 // setup a bootnode-specific swram instance
 pub async fn setup_swarm_for_bootnode(
     keypair: &identity::Keypair,
-)-> Result<Swarm<BootNodeBehaviour>, Box<dyn Error>> {
+)-> anyhow::Result<Swarm<BootNodeBehaviour>> {
     let local_keypair = keypair.clone();
     let swarm = libp2p::SwarmBuilder::with_existing_identity(local_keypair)
         .with_async_std()

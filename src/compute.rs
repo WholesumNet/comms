@@ -1,8 +1,23 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ComputeType {
+    // the compute is prove and lift
+    ProveAndLift,
+    
+    // the compute is join
+    Join,
+
+    // the compute is snark extraction(r0 identity_p254 + compress)
+    Snark,
+}
+
 // criteria for job seekers
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Criteria {
+    // the actual type compute needed
+    pub compute_type: ComputeType,
+
     // min memory amount, e.g. 16gb
     pub memory_capacity: Option<u32>,
 
@@ -16,10 +31,8 @@ pub struct Criteria {
 // used by clients when gossiping about compute needs
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NeedCompute {
-    pub job_id: String,
     pub criteria: Criteria,
 }
-
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerSpecs {
@@ -37,18 +50,31 @@ pub struct ServerBenchmark {
 // the offer as server makes for a compute need
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Offer {
-    pub job_id: String,
-    pub hw_specs: ServerSpecs, // hardware specs    
-    pub price: u8,             // $/secs of usage rate
+    pub compute_type: ComputeType,
+    pub hw_specs: ServerSpecs,                  
+    pub price: u8,                              
     pub server_benchmark: ServerBenchmark,
+}
+
+
+// input data for the job
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ComputeJobInputType {
+    // cid of the segment to be proved and lifted
+    Prove(String),
+
+    // cid of the left and right succinct receipts
+    Join(String, String),
 }
 
 // the actual compute job 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ComputeDetails {
     pub job_id: String,
-    pub docker_image: String,
-    pub command: String,
+    
+    pub compute_type: ComputeType,
+    
+    pub input_type: ComputeJobInputType,
 }
 
 // 
@@ -65,28 +91,18 @@ pub struct VerificationDetails {
 pub struct HarvestDetails {
     pub fd12_cid: Option<String>,
     pub receipt_cid: Option<String>,
-    //@ more fields TBD
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JobStatus {
-    // offer successfully evaluated, deal is struck
-    DealStruck,
-
     // running, aka proving
     Running,
 
-    // finished with error, cid of fd12(stdout - "unix fd 1" and stderr - "unix fd 2") as param
+    // finished with error, cid of fd12(stdout "unix fd 1" + stderr "unix fd 2") as param
     ExecutionFailed(Option<String>),    
 
     // waiting to be verified, receipt cid as param
-    ExecutionSucceeded(Option<String>),       
-
-    // receipt_cid as param
-    VerificationFailed(String),
-
-    // receipt_cid as param
-    VerificationSucceeded(String),
+    ExecutionSucceeded(String),  
 
     // harvested, cid of fd12, logs, ... as params
     Harvested(HarvestDetails),  
@@ -96,6 +112,7 @@ pub enum JobStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JobUpdate {
     pub id: String,
+    pub compute_type: ComputeType,
     pub status: JobStatus,
 }
 

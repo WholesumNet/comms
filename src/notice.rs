@@ -23,9 +23,6 @@ pub enum Request {
     // servers put benchmark + hw specs + $ rates into the offer
     ComputeOffer(compute::Offer),
 
-    // I would verify
-    VerificationOffer,
-
     // job's status has been updated
     UpdateForJobs(Vec<compute::JobUpdate>),
 
