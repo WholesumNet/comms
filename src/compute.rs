@@ -51,9 +51,20 @@ pub struct ServerBenchmark {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Offer {
     pub compute_type: ComputeType,
-    pub hw_specs: ServerSpecs, // hardware specs    
-    pub price: u8,             // $/secs of usage rate
+    pub hw_specs: ServerSpecs,                  
+    pub price: u8,                              
     pub server_benchmark: ServerBenchmark,
+}
+
+
+// input data for the job
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ComputeJobInputType {
+    // cid of the segment to be proved and lifted
+    Prove(String),
+
+    // cid of the left and right succinct receipts
+    Join(String, String),
 }
 
 // the actual compute job 
@@ -61,18 +72,9 @@ pub struct Offer {
 pub struct ComputeDetails {
     pub job_id: String,
     
-    //
-    pub docker_image: String,
-    
-    //
-    pub command: String,
-
     pub compute_type: ComputeType,
     
-    // cids of receipt blobs:
-    //   1 when proving(and lifting)
-    //   2 when joining
-    pub input: Vec<String>,
+    pub input_type: ComputeJobInputType,
 }
 
 // 
