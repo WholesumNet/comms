@@ -17,15 +17,6 @@ pub enum ComputeType {
 pub struct Criteria {
     // the actual type compute needed
     pub compute_type: ComputeType,
-
-    // min memory amount, e.g. 16gb
-    pub memory_capacity: Option<u32>,
-
-    // acceptable duration of the benchmark's execution e.g. max 40 secs
-    pub benchmark_duration_msecs: Option<u128>,
-
-    // benchmark expiration from now, e.g. 3600 secs
-    pub benchmark_expiry_secs: Option<i64>, 
 }
 
 // used by clients when gossiping about compute needs
@@ -41,19 +32,12 @@ pub struct ServerSpecs {
     pub cpu_model: String,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ServerBenchmark {
-    pub cid: String,
-    pub pod_name: String,
-}
-
 // the offer as server makes for a compute need
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Offer {
     pub compute_type: ComputeType,
     pub hw_specs: ServerSpecs,                  
     pub price: u8,                              
-    pub server_benchmark: ServerBenchmark,
 }
 
 
@@ -98,7 +82,7 @@ pub enum JobStatus {
     // running, aka proving
     Running,
 
-    // finished with error, cid of fd12(stdout "unix fd 1" + stderr "unix fd 2") as param
+    // finished with error, error message as param
     ExecutionFailed(Option<String>),    
 
     // waiting to be verified, receipt cid as param
