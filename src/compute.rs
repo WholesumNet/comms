@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-
+use bit_vec::BitVec;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProveDetails {
-
+    
     // a typical segment's cid: bafybeiccjcinml5w2meuhcnzu7gwlbkioy2dtyskulrspxoys6gikrrzae/segment-0
 
     // all segments are in a directory pointed to by the base cid
@@ -17,11 +17,15 @@ pub struct ProveDetails {
 
     // number of segments, used by provers to access any segment(0 to num_segments - 1)
     pub num_segments: u32,
+
+    // hints for provers to know what segments to prove
+    // the Nth bit is 1 => segment-N is already proved
+    pub proved_map: BitVec,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JoinDetails {
-
+   
     // a list of (left, right) tuples, order is important when reporting the result
     pub pairs: Vec<(String, String)>,    
 }
@@ -56,6 +60,7 @@ pub enum ComputeType {
 // used by clients when gossiping about compute needs
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NeedCompute {
+    
     // network-wide id of the job
     pub job_id: String,
 
@@ -67,20 +72,20 @@ pub struct NeedCompute {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JobStatus {
-    // running, aka proving
+    
     Running,
 
-    // finished with error, error message as param
+    // error message as param
     ExecutionFailed(Option<String>),    
 
-    // waiting to be verified, receipt cid as param
+    // receipt cid as param
     ExecutionSucceeded(String), 
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ItemType {
+pub enum Item {
 
-    Prove,
+    Prove(u32),
 
     Join,
 
@@ -93,10 +98,10 @@ pub enum ItemType {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JobUpdate {
 
+    // job_id
     pub id: String,
 
-    // type of the item being reported
-    pub item_type: ItemType,
+    pub item: Item,
 
     pub status: JobStatus,
 }

@@ -15,3 +15,4 @@ libp2p = { version = "0.53.2", features = ["async-std", "request-response", "cbo
 libp2p-quic = { version = "0.10.2", features = ["async-std"] }
 #libp2p-identify = "0.44.1"
 anyhow = "1.0.86"
+bit-vec = { version = "0.8.0", features = ["serde"] }
