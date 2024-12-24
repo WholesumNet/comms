@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
-use bit_vec::BitVec;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProveDetails {
     
-    // a typical segment's cid: bafybeiccjcinml5w2meuhcnzu7gwlbkioy2dtyskulrspxoys6gikrrzae/segment-0
+    // a typical segment cid: bafybeiccjcinml5w2meuhcnzu7gwlbkioy2dtyskulrspxoys6gikrrzae/segment-0
 
     // all segments are in a directory pointed to by the base cid
     pub segments_base_cid: String,
@@ -18,9 +17,9 @@ pub struct ProveDetails {
     // number of segments, used by provers to access any segment(0 to num_segments - 1)
     pub num_segments: u32,
 
-    // hints for provers to know what segments to prove
+    // hints for provers to know what segments remain to be proved
     // the Nth bit is 1 => segment-N is already proved
-    pub proved_map: BitVec,
+    pub proved_map: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -31,7 +30,7 @@ pub struct JoinDetails {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SnarkDetails {
+pub struct Groth16Details {
 
     // stark proof's cid
     pub cid: String,    
@@ -51,7 +50,7 @@ pub enum ComputeType {
     
     Join(JoinDetails),
 
-    Snark(SnarkDetails),
+    Groth16(Groth16Details),
 
     // reserved for future
     Verification(VerificationDetails),
@@ -85,9 +84,11 @@ pub enum JobStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Item {
 
+    // param: segment id
     Prove(u32),
 
-    Join,
+    // param: left & right proof cids
+    Join(String, String),
 
     Snark, 
 
