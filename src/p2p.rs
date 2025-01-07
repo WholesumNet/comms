@@ -16,7 +16,7 @@ use libp2p::{
     tcp, yamux, PeerId,
 };
 use anyhow;
-use crate::notice;
+use crate::protocol;
 
 // prepare mdns behaviour
 fn prepare_mdns_behaviour(
@@ -56,9 +56,9 @@ fn prepare_gossipsub_behaviour(
 
 // prepare request-response behaviour
 fn prepare_request_response_behaviour()
--> request_response::cbor::Behaviour<notice::Request, notice::Response> 
+-> request_response::cbor::Behaviour<protocol::Request, protocol::Response> 
 {
-    request_response::cbor::Behaviour::<notice::Request, notice::Response>::new(
+    request_response::cbor::Behaviour::<protocol::Request, protocol::Response>::new(
         [(
             StreamProtocol::new("/wholesum/req_resp/1.0"),
             request_response::ProtocolSupport::Full,
@@ -101,7 +101,7 @@ pub struct MyBehaviour {
     pub mdns: mdns::async_io::Behaviour,
     pub kademlia: kad::Behaviour<kad::store::MemoryStore>,
     pub gossipsub: gossipsub::Behaviour,
-    pub req_resp: request_response::cbor::Behaviour<notice::Request, notice::Response>,
+    pub req_resp: request_response::cbor::Behaviour<protocol::Request, protocol::Response>,
 }
 
 // setup a global swram instance
