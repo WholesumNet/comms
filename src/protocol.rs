@@ -16,15 +16,37 @@ pub struct ProveDetails {
     // number of segments, used by provers to access any segment(0 to num_segments - 1)
     pub num_segments: u32,
 
-    // hints for provers to know what segments remain to be proved
+    // hints for provers to know what segments to prove
     // the Nth bit is 1 => segment-N is already proved
-    pub proved_map: Vec<u8>
+    pub progress_map: Vec<u8>
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct JoinDetails {   
-    // a list of (left, right) tuples, order is important when reporting the result
-    pub pairs: Vec<(String, String)>    
+pub enum JoinType {
+    // when there is less than 32 pairs ~3.2kb
+    Inline(Vec<(String, String)>),
+
+    // cid of the json file that contains longer pair data
+    // json file:
+    //    [
+    //      (l1, r1),
+    //      (l2, r2),
+    //      .
+    //      .
+    //      (lN, rN)
+    //    ]
+    Cid(String)
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct JoinDetails {    
+    // number of pairs to be joined
+    pub num_joins: u32,
+
+    pub join_type: JoinType,
+
+    // hints for provers to know what pairs to join
+    // the Nth bit is 1 => pair-N is already proved
+    pub joined_map: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
