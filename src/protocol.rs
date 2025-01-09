@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ProveDetails {    
+pub struct ProveAndLiftDetails {    
     // a typical segment cid: bafybeiccjcinml5w2meuhcnzu7gwlbkioy2dtyskulrspxoys6gikrrzae/segment-0
 
     // all segments are in a directory pointed to by the base cid
@@ -22,7 +22,7 @@ pub struct ProveDetails {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum JoinType {
+pub enum JoinPairs {
     // when there is less than 32 pairs ~3.2kb
     Inline(Vec<(String, String)>),
 
@@ -40,13 +40,13 @@ pub enum JoinType {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JoinDetails {    
     // number of pairs to be joined
-    pub num_joins: u32,
+    pub num_pairs: u32,
 
-    pub join_type: JoinType,
+    pub pairs: JoinPairs,
 
     // hints for provers to know what pairs to join
     // the Nth bit is 1 => pair-N is already proved
-    pub joined_map: Vec<u8>,
+    pub progress_map: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -63,7 +63,7 @@ pub struct VerificationDetails {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ComputeType {
-    ProveAndLift(ProveDetails),
+    ProveAndLift(ProveAndLiftDetails),
     
     Join(JoinDetails),
 
@@ -75,7 +75,7 @@ pub enum ComputeType {
 
 // used by clients when gossiping about compute needs
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NeedCompute {    
+pub struct ComputeJob {    
     // network-wide id of the job
     pub job_id: String,
 
@@ -85,6 +85,15 @@ pub struct NeedCompute {
     pub budget: u32
 }
 
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum Need {
+    // need compute resources
+    Compute(ComputeJob),    
+
+    // update me on my jobs
+    UpdateMe(u8),                     
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JobStatus {    
     Running,
@@ -92,19 +101,19 @@ pub enum JobStatus {
     // error message as param
     ExecutionFailed(Option<String>),    
 
-    // receipt cid as param
+    // proof cid as param
     ExecutionSucceeded(String) 
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Item {
     // param: segment id
-    Prove(u32),
+    ProveAndLift(u32),
 
     // param: left & right proof cids
     Join(String, String),
 
-    Snark, 
+    Groth16, 
 
     Verification
 }
@@ -118,15 +127,6 @@ pub struct JobUpdate {
     pub item: Item,
 
     pub status: JobStatus
-}
-
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub enum Notice {
-    // need compute resources
-    Compute(NeedCompute),    
-
-    // update me on my job
-    UpdateMe(u8),                     
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
