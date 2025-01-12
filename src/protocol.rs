@@ -22,27 +22,11 @@ pub struct ProveAndLiftDetails {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum JoinPairs {
-    // when there is less than 32 pairs ~3.2kb
-    Inline(Vec<(String, String)>),
-
-    // cid of the json file that contains longer pair data
-    // json file:
-    //    [
-    //      (l1, r1),
-    //      (l2, r2),
-    //      .
-    //      .
-    //      (lN, rN)
-    //    ]
-    Cid(String)
-}
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct JoinDetails {    
+pub struct JoinDetails {
     // number of pairs to be joined
     pub num_pairs: u32,
 
-    pub pairs: JoinPairs,
+    pub pairs: Vec<(String, String)>,
 
     // hints for provers to know what pairs to join
     // the Nth bit is 1 => pair-N is already proved
@@ -56,21 +40,12 @@ pub struct Groth16Details {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct VerificationDetails {
-    // SuccinctReceipt's cid
-    pub cid: String    
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ComputeType {
     ProveAndLift(ProveAndLiftDetails),
     
     Join(JoinDetails),
 
     Groth16(Groth16Details),
-
-    //@ reserved for future
-    Verification(VerificationDetails),
 }
 
 // used by clients when gossiping about compute needs
@@ -113,12 +88,9 @@ pub enum Item {
     // param: left & right proof cids
     Join(String, String),
 
-    Groth16, 
-
-    Verification
+    Groth16
 }
 
-// servers update clients about latest developments of jobs 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JobUpdate {
     // job_id
