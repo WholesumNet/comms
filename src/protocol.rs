@@ -67,17 +67,6 @@ pub enum Need {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum JobStatus {    
-    Running,
-
-    // error message as param
-    ExecutionFailed(Option<String>),    
-
-    // proof cid as param
-    ExecutionSucceeded(String) 
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Item {
     // param: segment id
     ProveAndLift(u32),
@@ -95,7 +84,7 @@ pub struct JobUpdate {
 
     pub item: Item,
 
-    pub status: JobStatus
+    pub proof_cid: String
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
