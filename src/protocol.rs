@@ -23,9 +23,6 @@ pub struct ProveAndLiftDetails {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JoinDetails {
-    // number of pairs to be joined
-    pub num_pairs: u32,
-
     pub pairs: Vec<(String, String)>,
 
     // hints for provers to know what pairs to join
@@ -40,7 +37,7 @@ pub struct Groth16Details {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ComputeType {
+pub enum JobType {
     ProveAndLift(ProveAndLiftDetails),
     
     Join(JoinDetails),
@@ -54,8 +51,8 @@ pub struct ComputeJob {
     // network-wide id of the job
     pub job_id: String,
 
-    // whether it's prove, join, or snark
-    pub compute_type: ComputeType,    
+    // whether it's prove, join, or groth16
+    pub job_type: JobType,
 
     pub budget: u32
 }
@@ -67,17 +64,6 @@ pub enum Need {
 
     // update me on my jobs
     UpdateMe(u8),                     
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum JobStatus {    
-    Running,
-
-    // error message as param
-    ExecutionFailed(Option<String>),    
-
-    // proof cid as param
-    ExecutionSucceeded(String) 
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -98,7 +84,7 @@ pub struct JobUpdate {
 
     pub item: Item,
 
-    pub status: JobStatus
+    pub proof_cid: String
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
