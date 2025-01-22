@@ -60,14 +60,14 @@ pub struct ComputeJob {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Need {
     // need compute resources
-    Compute(ComputeJob),    
+    Compute(ComputeJob),
 
     // update me on my jobs
-    UpdateMe(u8),                     
+    UpdateMe(u8),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Item {
+pub enum ProofType {
     // param: segment id
     ProveAndLift(u32),
 
@@ -78,19 +78,18 @@ pub enum Item {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct JobUpdate {
-    // job_id
-    pub id: String,
+pub struct Proof {
+    pub job_id: String,
 
-    pub item: Item,
+    pub proof_type: ProofType,
 
-    pub proof_cid: String
+    pub cid: String
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Request {
     // job's status has been updated
-    Update(Vec<JobUpdate>),
+    ProofIsReady(Vec<Proof>),
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
