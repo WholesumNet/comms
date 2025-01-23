@@ -62,8 +62,9 @@ pub enum Need {
     // need compute resources
     Compute(ComputeJob),
 
-    // update me on my jobs
-    UpdateMe(u8),
+    // update me on my job's status
+    // param: job_id
+    UpdateMe(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
